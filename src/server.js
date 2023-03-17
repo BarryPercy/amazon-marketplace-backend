@@ -33,7 +33,7 @@ server.use(
 )
 server.use(Express.json())
 server.use("/products", productsRouter)
-server.use("/", reviewsRouter)
+server.use("/products", reviewsRouter)
 server.use("/", filesRouter)
 
 

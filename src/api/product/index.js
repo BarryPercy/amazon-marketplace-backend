@@ -1,7 +1,7 @@
 import Express from "express"
 import createHttpError from "http-errors"
 import q2m from "query-to-mongo"
-import ProductModel from "./model.js"
+import {ProductModel} from "./model.js"
 
 const productsRouter = Express.Router()
 
@@ -12,14 +12,16 @@ productsRouter.post("/", async (req, res, next) => {
     const {_id } = await newProduct.save()
     res.status(201).send({ _id })
   } catch (error) {
-    next(error)
+      next(error);
+    }
+
   }
-})
+)
 
 productsRouter.get("/", async (req, res, next) => {
   try{
     const mongoQuery = q2m(req.query)
-      const {products, total, limit} = await ProductModel.findProducts(mongoQuery)
+      const { products, total, limit } = await ProductModel.findProductsWithReviews(mongoQuery)
       const currentUrl = `${req.protocol}://${req.get("host")}`;
       res.send({
         links: mongoQuery.links(currentUrl+"/products", total),
