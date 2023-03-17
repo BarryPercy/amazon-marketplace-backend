@@ -3,7 +3,7 @@ import listEndpoints from "express-list-endpoints"
 // import authorsRouter from "./api/authors/index.js"
 import cors from 'cors'
 import productsRouter from "./api/product/index.js"
-import filesRouter from "./api/files/index.js"
+//import filesRouter from "./api/files/index.js"
 import reviewsRouter from "./api/reviews/index.js"
 import { genericErrorHandler, badRequestHandler, unauthorizedHandler, notfoundHandler } from "./errorsHandlers.js"
 import { join } from "path"
@@ -34,7 +34,7 @@ server.use(
 server.use(Express.json())
 server.use("/products", productsRouter)
 server.use("/products", reviewsRouter)
-server.use("/", filesRouter)
+//server.use("/", filesRouter)
 
 
 server.use(badRequestHandler) // 400

@@ -1,5 +1,4 @@
 import Express from "express"
-import uniqid from "uniqid"
 import { ProductModel, ReviewModel } from "../product/model.js"
 import createHttpError from "http-errors"
 
@@ -12,7 +11,7 @@ reviewsRouter.post("/:productId/reviews", async (req, res, next) => {
     const { _id } = await newReview.save()
     const product = await ProductModel.findById(req.params.productId)
   if (!product) return next(createHttpError(404, `Product with id ${req.params.productId} not found!`))
-  const updatedProduct = await ProductModel.findOneAndUpdate(
+  await ProductModel.findOneAndUpdate(
     { _id: req.params.productId },
     { $push: { reviews: _id }},
     { new: true, runValidators: true}
@@ -26,6 +25,7 @@ reviewsRouter.post("/:productId/reviews", async (req, res, next) => {
 reviewsRouter.get("/:productId/reviews", async (req, res, next) => {
   try{
     const product = await ProductModel.findById(req.params.productId)
+    .populate({ path: "reviews", select: "comment rate"})
     if (!product) return next(createHttpError(404, `Product with id ${req.params.productId} not found!`))
     res.send(product.reviews)
   }catch(error){
