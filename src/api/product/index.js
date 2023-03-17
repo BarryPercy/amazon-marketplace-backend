@@ -1,29 +1,32 @@
 import Express from "express"
-import uniqid from "uniqid"
 import createHttpError from "http-errors"
-import { getProducts, writeProducts } from "../../lib/fs-tools.js"
-import { checkProductsSchema, triggerBadRequest } from "./validation.js"
+import q2m from "query-to-mongo"
+import ProductModel from "./model.js"
 
 const productsRouter = Express.Router()
 
 
-productsRouter.post("/", checkProductsSchema, triggerBadRequest, async (req, res, next) => {
-    const newProduct = { ...req.body, _id: uniqid(), createdAt: new Date(), updatedAt: new Date() }
-    const productsArray = await getProducts();
-    productsArray.push(newProduct)
-    await writeProducts(productsArray)
-    res.status(201).send({ id: newProduct._id })
+productsRouter.post("/", async (req, res, next) => {
+  try {
+    const newProduct = new ProductModel(req.body)
+    const {_id } = await newProduct.save()
+    res.status(201).send({ _id })
+  } catch (error) {
+    next(error)
+  }
 })
 
 productsRouter.get("/", async (req, res, next) => {
   try{
-    const productsArray = await getProducts();
-    if (req.query && req.query.category) {
-      const filteredProducts = productsArray.filter(product => product.category === req.query.category)
-      res.send(filteredProducts)
-    }else{
-      res.send(productsArray)
-    }
+    const mongoQuery = q2m(req.query)
+      const {products, total, limit} = await ProductModel.findProducts(mongoQuery)
+      const currentUrl = `${req.protocol}://${req.get("host")}`;
+      res.send({
+        links: mongoQuery.links(currentUrl+"/products", total),
+        total,
+        numberOfPages: Math.ceil(total / limit),
+        products,
+      })
   }catch(error){
     next(error)
   }
@@ -31,8 +34,7 @@ productsRouter.get("/", async (req, res, next) => {
 
 productsRouter.get("/:productId", async (req, res, next) => {
   try{
-    const productsArray = await getProducts();
-    const product = productsArray.find(product => product._id === req.params.productId)
+    const product = await ProductModel.findById(req.params.productId)
     if(product){
       res.send(product)
     }else{
@@ -47,13 +49,12 @@ productsRouter.get("/:productId", async (req, res, next) => {
 
 productsRouter.put("/:productId", async (req, res, next) => {
   try{
-    const productsArray = await getProducts();
-    const index = productsArray.findIndex(product => product._id === req.params.productId)
-    if(index!==-1){
-      const oldProduct = productsArray[index]
-      const updatedProduct = { ...oldProduct, ...req.body, updatedAt: new Date()}
-      productsArray[index] = updatedProduct
-      await writeProducts(productsArray)
+    const updatedProduct= await ProductModel.findByIdAndUpdate(
+      req.params.productId,
+      req.body,
+      { new: true, runValidators: true}
+    )
+    if (updatedProduct){
       res.send(updatedProduct)
     }else{
       next(createHttpError(404, `Product with id ${req.params.productId} not found!`))
@@ -65,10 +66,8 @@ productsRouter.put("/:productId", async (req, res, next) => {
 
 productsRouter.delete("/:productId", async (req, res, next) => {
   try{
-    const productsArray = await getProducts();
-    const remainingProducts = productsArray.filter(product => product._id !== req.params.productId)
-    if(productsArray.length!==remainingProducts.length){
-      await writeProducts(remainingProducts)
+    const deletedProduct = await ProductModel.findByIdAndDelete(req.params.productId)
+    if(deletedProduct){
       res.status(204).send()
     }else{
       next(createHttpError(404, `Product with id ${req.params.productId} not found!`))
