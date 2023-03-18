@@ -4,11 +4,11 @@ import { extname } from "path"
 import { saveProductsImageUrls } from "../../lib/fs-tools.js"
 import { getProducts, writeProducts } from "../../lib/fs-tools.js"
 import createHttpError from "http-errors"
-import { triggerBadRequest } from "../product/validation.js"
+//import { triggerBadRequest } from "../product/validation.js"
 
 const filesRouter = Express.Router()
 
-filesRouter.post("/products/:productId/single", triggerBadRequest, multer().single("imageUrl"), async (req, res, next) => {
+filesRouter.post("/products/:productId/single", multer().single("imageUrl"), async (req, res, next) => {
     try {
       const originalFileExtension = extname(req.file.originalname)
       const fileName = req.params.productId + originalFileExtension
